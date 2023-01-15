@@ -1,0 +1,167 @@
+import pygame,sys
+import random
+
+pygame.init()
+
+# FPS 
+FPS = 30
+clock = pygame.time.Clock()
+
+# screen
+SCREENWIDTH = 1280
+SCREENHEIGHT = 668
+screen = pygame.display.set_mode((SCREENWIDTH,SCREENHEIGHT))
+
+# title and icon
+title = pygame.display.set_caption("Fighter jets")
+icon = pygame.image.load("image/Fighter_jets_icon.png")
+pygame.display.set_icon(icon)
+
+# background
+background = pygame.image.load("image/background_sky.png")
+def display_background():
+    screen.blit(background,(0,0))
+
+# player
+scale = 1
+Fighter_jetsImg = pygame.image.load("image/Fighter_jets.png")
+Fighter_jetsImg = pygame.transform.scale(Fighter_jetsImg,(Fighter_jetsImg.get_width()*scale,Fighter_jetsImg.get_height()*scale))
+Fighter_jets_x = 550
+Fighter_jets_y= 500
+Fighter_jets_x_change = 0
+Fighter_jets_y_change = 0
+
+def display_Fighter_jets(x,y):
+    screen.blit(Fighter_jetsImg,(x,y))
+
+# ufo
+scale = 0.4
+ufoImg = []
+ufo_x = []
+ufo_y = []
+ufo_x_change = []
+ufo_y_change = []
+num_of_ufo = 3
+image = pygame.image.load("image/ufo.png")
+img = pygame.transform.scale(image,(image.get_width()*scale,image.get_height()*scale))
+
+# Rocket
+RocketImg = pygame.image.load("image/rocket.png")
+scale = 0.2
+RocketImg = pygame.transform.scale(RocketImg,(RocketImg.get_width()*scale,RocketImg.get_height()*scale))
+Rocket_rect = RocketImg.get_rect()
+Rocket_x = Fighter_jets_x
+Rocket_y= 500
+Rocket_x_change = 0
+Rocket_y_change = -15
+Fire = False
+
+def display_Rocket(x,y):
+    global Fire
+    Fire = True
+    screen.blit(RocketImg,(x+16,y+10))
+screen_y = 0
+             
+# Score value
+global score_value
+score_value = 0
+font = pygame.font.SysFont("Arial",30)
+big_font = pygame.font.SysFont("Arial",70)
+
+# Music
+bg_music = pygame.mixer.Sound("sound/bg_music.wav")
+bg_music.play(loops= -1)
+bg_music.set_volume(0.5)
+
+# spam ufo
+for i in range(num_of_ufo):
+    ufoImg.append(img)
+    ufo_x.append(random.randint(100,1130))
+    ufo_y.append(random.randint(50,100))
+    ufo_x_change.append(7)
+    ufo_y_change.append(40)
+
+def display_ufo(x,y,i):
+    screen.blit(ufoImg[i],(x,y))
+
+while True:
+    display_background()
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            pygame.quit()
+            sys.exit()
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_LEFT:
+                Fighter_jets_x_change = -10
+            if event.key == pygame.K_RIGHT:
+                Fighter_jets_x_change = 10
+            if event.key == pygame.K_SPACE:
+                if Fire == False:
+                    Rocket_x = Fighter_jets_x
+                    display_Rocket(Rocket_x,Rocket_y)
+        if event.type == pygame.KEYUP:
+            if event.key == pygame.K_LEFT or event.key == pygame.K_RIGHT:
+                Fighter_jets_x_change = 0
+           
+    # Fighter_jets 
+    if Fighter_jets_x <= 0:
+        Fighter_jets_x = 0
+    elif Fighter_jets_x >= 1180:
+        Fighter_jets_x = 1180
+    Fighter_jets_x += Fighter_jets_x_change
+    display_Fighter_jets(Fighter_jets_x,Fighter_jets_y)
+
+    # Rocket
+    Rocket_rect.topleft = (Rocket_x,Rocket_y)
+    if Fire:
+        Rocket_y += Rocket_y_change
+        display_Rocket(Rocket_x,Rocket_y)
+    if Rocket_y <= -30:
+        Rocket_y = Fighter_jets_y
+        Fire = False
+
+    # ufo 
+    for i in range(num_of_ufo):
+        # game over
+        if ufo_y[i] >= 200:
+            Rocket_x = -1000
+            Rocket_y = 0
+            for j in range(num_of_ufo):
+                ufo_y[j] = 2000
+            Fighter_jets_x_change = 0
+            pygame.draw.rect(screen,(255,0,0),(0,0,SCREENWIDTH,screen_y))
+            if screen_y <= SCREENHEIGHT:
+                screen_y += 5
+            score_value = str(score_value)
+            bg_music.stop()
+            game_over = pygame.mixer.Sound("sound/game_over.wav")
+            game_over.play()
+            game_over.set_volume(0.2)
+            lose_game_word = big_font.render("You Lose",True,(255,255,255))
+            screen.blit(lose_game_word,(SCREENWIDTH//2 - 100,SCREENHEIGHT//2 - 100))
+            lose_game_word = big_font.render("Your Score: " + score_value,True,(255,255,255))
+            screen.blit(lose_game_word,(SCREENWIDTH//2 - 150,SCREENHEIGHT//2 - 20))
+        if ufo_x[i] <= -10:
+            ufo_x_change[i] = 8
+            ufo_y[i] += ufo_y_change[i]
+        if ufo_x[i] >= 1130:
+            ufo_x_change[i] = -8
+            ufo_y[i] += ufo_y_change[i]
+        ufo_x[i] += ufo_x_change[i]
+        ufo_rect = ufoImg[i].get_rect()
+        ufo_rect.topleft = (ufo_x[i],ufo_y[i])
+        display_ufo(ufo_x[i],ufo_y[i],i)
+
+        if Rocket_rect.colliderect(ufo_rect):
+            Rocket_y = -100
+            ufo_x[i] = random.randint(100,700)
+            ufo_y[i] = random.randint(50,100)
+            score_value += 1
+            boom_music = pygame.mixer.Sound("sound/boom.wav")
+            boom_music.play()
+            boom_music.set_volume(0.2)
+    # score
+    score_word = font.render("SCORE: " + str(score_value),True,(255,255,255))
+    screen.blit(score_word,(10,10))
+    clock.tick(FPS)
+    pygame.display.update()
